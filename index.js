@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express();
 const port = process.env.PORT || 5000;
 require('dotenv').config()
@@ -39,13 +39,59 @@ async function run() {
         // const movies = database.collection("movies");
 
         const serviceCollection = client.db('carDoctor').collection('services');
+        const bookingCollection = client.db('carDoctor').collection('bookings');
 
-        // find or get
+        // find or get or all data loaded
         app.get('/services', async (req, res) => {
             const cursor = serviceCollection.find();
             const result = await cursor.toArray();
             res.send(result);
         })
+
+        // find or get or single data loaded using id
+        app.get('/services/:id', async(req, res) => {
+            const id = req.params.id;
+            // get all data using query id
+            const query = { _id: new ObjectId(id) };
+
+            // get some or all data using option
+            const options = {
+                //set condition which data we are get
+                // value:0 means ---not get dada
+                // value:1 means ---get data data
+                // id by default get
+                projection: {
+                    title: 1,
+                    price: 1,
+                    service_id: 1,
+                    img:1,
+                 },
+            };
+            const result = await serviceCollection.findOne(query,options);
+            res.send(result);
+        })
+
+        // find or get some booking data using query
+        console.log('query --------')
+        app.get('/bookings', async (req, res) => {
+            console.log(req.query);
+            let query = {};
+            if (req.query ?. email) {
+                query={email:req.query.email}
+            }
+            const result = await bookingCollection.find(query).toArray();
+            res.send(result);
+
+        })
+        // booing single data or post
+
+        app.post('/bookings', async (req, res) => {
+            const booking = req.body;
+            console.log(booking);
+            const result = await bookingCollection.insertOne(booking);
+            res.send(result);
+        })
+
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
@@ -60,7 +106,7 @@ run().catch(console.dir);
 
 // just server checking localhost
 app.get('/', (req, res) => {
-    res.send('Cars doctor is running')
+    res.send('Cars doctor is running');
 }) 
 app.listen(port, () => {
     console.log(`Car doctor is running on port: ${port}`)
