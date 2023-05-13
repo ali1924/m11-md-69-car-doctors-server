@@ -29,6 +29,28 @@ const client = new MongoClient(uri, {
         deprecationErrors: true,
     }
 });
+const verifyJWT = (req, res, next) => {
+    console.log('Outside', req.headers.authorization);
+    const authorization = req.headers.authorization
+    console.log(authorization);
+    if (!authorization) {
+        // return res.send({error:true, message:'unauthorize access'})
+        return res.status(401).send({ error: true, message: 'unauthorize access' });
+    }
+    // find token
+    const token = authorization.split(' ')[1];
+    console.log('token inside: ', token);
+
+    // verify token
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (error, decoded) => {
+        if (error) {
+            return res.status(403).send({ error: true, message: 'unauthorize access' });
+        }
+        res.decoded = decoded;
+        next();
+    })
+
+}
 
 async function run() {
     try {
@@ -45,7 +67,7 @@ async function run() {
         //jwt
         app.post('/jwt', (req, res) => {
             const user = req.body;
-            console.log(user);
+            // console.log(user);
             const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
                 expiresIn: '1h',
             })
@@ -85,8 +107,11 @@ async function run() {
 
         // find or get some booking data using query
         // console.log('query --------')
-        app.get('/bookings', async (req, res) => {
+        app.get('/bookings',verifyJWT,async (req, res) => {
             // console.log(req.query);
+
+            // ***************JWT********************
+            console.log('Inside', req.headers.authorization);
             let query = {};
             if (req.query ?. email) {
                 query={email:req.query.email}
