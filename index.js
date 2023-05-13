@@ -30,28 +30,25 @@ const client = new MongoClient(uri, {
     }
 });
 const verifyJWT = (req, res, next) => {
-    console.log('Outside', req.headers.authorization);
-    const authorization = req.headers.authorization
+    console.log('JWT hitting');
+    const authorization = req.headers.authorization;
     console.log(authorization);
+    // check authorization present or not
     if (!authorization) {
-        // return res.send({error:true, message:'unauthorize access'})
         return res.status(401).send({ error: true, message: 'unauthorize access' });
     }
     // find token
     const token = authorization.split(' ')[1];
-    console.log('token inside: ', token);
 
     // verify token
     jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (error, decoded) => {
         if (error) {
             return res.status(403).send({ error: true, message: 'unauthorize access' });
         }
-        res.decoded = decoded;
+        req.decoded = decoded;
         next();
     })
-
 }
-
 async function run() {
     try {
         // Connect the client to the server	(optional starting in v4.7)
@@ -111,7 +108,15 @@ async function run() {
             // console.log(req.query);
 
             // ***************JWT********************
-            console.log('Inside', req.headers.authorization);
+            // console.log(req.headers.authorization);
+
+            const decoded = req.decoded;
+
+            // check email present or not
+            if (decoded.email !== req.query.email) {
+                return res.status(403).send({error:1,message:'forbidden access'})
+            }
+            console.log('decoded output: ', decoded);
             let query = {};
             if (req.query ?. email) {
                 query={email:req.query.email}
